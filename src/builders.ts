@@ -1,7 +1,7 @@
 import { F } from 'ts-toolbelt'
 import { ZManifest } from './manifest'
 import { ZTypeName } from './typeName'
-import { merge, unionizeHints } from './utils'
+import { merge, readonlyDeep, unionizeHints } from './utils'
 import { AnyZ, Z } from './z'
 
 export const ZBuilder = <Output, Input = Output>() =>
@@ -92,7 +92,7 @@ const BuildFinalizer =
     manifest: Manifest
   ) => {
     const builder = () => {
-      const config = { typeName, def, hint, manifest }
+      const config = readonlyDeep({ typeName, def, hint, manifest })
       return Object.assign(new Z<Output, typeof config, Input>(config), def)
     }
 
