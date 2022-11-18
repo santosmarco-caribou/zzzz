@@ -1,20 +1,40 @@
-export interface ZManifest {
-  readonly type: string
+import { ZParsedType } from './typeName'
+import { merge, type Merge } from './utils'
+
+export interface DetailedBase {
   readonly title?: string
   readonly summary?: string
   readonly description?: string
+}
+
+export interface Detailed<V> extends DetailedBase {
+  readonly value: V
+}
+
+export type DetailedArg<V> = V | Detailed<V>
+
+export const parseStringDetailedArg = (
+  arg: DetailedArg<string>
+): Detailed<string> => {
+  if (typeof arg === 'string') {
+    return { value: arg }
+  }
+  return arg
+}
+
+export interface ZManifest<Output> extends DetailedBase {
+  readonly type: ZParsedType | readonly [ZParsedType, ...ZParsedType[]]
+  readonly examples?: readonly [Output, ...Output[]]
+  readonly tags?: readonly [Detailed<string>, ...Detailed<string>[]]
+  readonly notes?: readonly [Detailed<string>, ...Detailed<string>[]]
+  readonly unit?: Detailed<string>
   readonly deprecated?: boolean
   readonly required?: boolean
   readonly nullable?: boolean
   readonly readonly?: boolean
 }
 
-export interface ZManifestMethods {
-  title<T extends string>(title: T): ZManifestMethods
-  summary<T extends string>(summary: T): ZManifestMethods
-  description<T extends string>(description: T): ZManifestMethods
-  deprecated<T extends boolean = true>(value: T): ZManifestMethods
-}
+export type AnyZManifest = ZManifest<unknown>
 
 export const getZManifestDefaults = () =>
   ({
@@ -24,3 +44,11 @@ export const getZManifestDefaults = () =>
   } as const)
 
 export type ZManifestDefaults = ReturnType<typeof getZManifestDefaults>
+
+export const initializeManifest = <Output, M extends ZManifest<Output>>(
+  manifest: M
+) =>
+  merge(getZManifestDefaults(), manifest) as Merge<
+    Merge<ZManifest<Output>, ZManifestDefaults>,
+    M
+  >
