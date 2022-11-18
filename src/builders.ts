@@ -93,7 +93,18 @@ const BuildFinalizer =
   ) => {
     const builder = () => {
       const config = readonlyDeep({ typeName, def, hint, manifest })
-      return Object.assign(new Z<Output, typeof config, Input>(config), def)
+      return Object.assign(
+        new Z<Output, typeof config, Input>(config),
+        Object.entries(def).reduce(
+          (acc, [k, v]) => ({
+            ...acc,
+            get [k]() {
+              return v
+            },
+          }),
+          {} as Def
+        )
+      )
     }
 
     return { build: builder }

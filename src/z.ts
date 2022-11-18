@@ -46,7 +46,7 @@ type UpdateManifest<
   >
 >
 
-export class Z<Output, Config extends ZConfig, Input = Output>
+export class Z<Output, Config extends ZConfig, Input>
   implements BaseZ<Output, Config, Input>, ZManifestMethods
 {
   readonly $_output!: Output
@@ -185,9 +185,9 @@ type ZVoid = ReturnType<typeof zvoid>
 
 export const z = {
   any: zany,
-  void: zvoid,
-  optional: zoptional,
   nullable: znullable,
+  optional: zoptional,
+  void: zvoid,
 }
 
 export namespace z {

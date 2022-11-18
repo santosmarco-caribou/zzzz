@@ -1,6 +1,8 @@
 import { unionizeHints } from './hint'
 import { AnyZ, z, Z } from './z'
 
-const a = z.void().optional()
+const a = z.void().optional().underlying
 
 type C = z.infer<typeof a>
+
+console.log(z.void().optional())
