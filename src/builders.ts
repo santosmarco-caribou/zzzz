@@ -135,7 +135,26 @@ const BuildFinalizer =
       ),
     }
 
-    const schema = new ZType<Output, typeof config, Input>(config)
+    type Config = typeof config
 
-    return { build: () => schema }
+    const schema = new ZType<Output, Config, Input>(config)
+
+    return {
+      build: () => schema,
+
+      extend: <Extension extends Record<string, unknown>>(
+        extension:
+          | ((data: {
+              config: Config
+              schema: ZType<Output, Config, Input>
+            }) => Extension & ThisType<ZType<Output, Config, Input>>)
+          | (Extension & ThisType<ZType<Output, Config, Input>>)
+      ) =>
+        Object.assign(
+          schema,
+          typeof extension === 'function'
+            ? extension({ config, schema })
+            : extension
+        ),
+    }
   }

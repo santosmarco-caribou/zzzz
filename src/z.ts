@@ -1,23 +1,27 @@
 import { ZBuilder } from './builders'
-import { DetailedArg, parseStringDetailedArg, ZManifest } from './manifest'
-import { ZOptions, ZOptionsMethods } from './options'
-import { ZParsedType, ZTypeName } from './typeName'
+import {
+  parseStringDetailedArg,
+  type DetailedArg,
+  type ZManifest,
+} from './manifest'
+import type { ZOptions } from './options'
+import { ZParsedType, ZTypeName } from './types'
 import {
   get,
   map,
-  ReadonlyDeep,
   readonlyDeep,
-  Simplify,
   simplify,
+  type ReadonlyDeep,
+  type Simplify,
 } from './utils'
 
 const _z = Symbol('Z')
 
 export interface ZConfig<Output> {
   readonly typeName: ZTypeName
+  readonly options: ZOptions
   readonly def: Record<string, unknown> | null
   readonly hint: string
-  readonly options: ZOptions
   readonly manifest: ZManifest<Output>
 }
 
@@ -25,28 +29,28 @@ export interface BaseZ<Output, Config extends ZConfig<Output>, Input> {
   readonly $_output: Output
   readonly $_input: Input
   readonly typeName: Config['typeName']
-  readonly hint: Config['hint']
   readonly options: Simplify<ReadonlyDeep<Config['options']>>
+  readonly hint: Config['hint']
   readonly manifest: Simplify<ReadonlyDeep<Config['manifest']>>
   readonly [_z]: true
 }
 
 export class ZType<Output, Config extends ZConfig<Output>, Input>
-  implements BaseZ<Output, Config, Input>, ZOptionsMethods
+  implements BaseZ<Output, Config, Input>
 {
   readonly $_output!: Output
   readonly $_input!: Input
 
   private readonly _typeName: Config['typeName']
-  private readonly _hint: Config['hint']
   private readonly _options: Config['options']
+  private readonly _hint: Config['hint']
   private readonly _manifest: Config['manifest']
 
   constructor(private readonly _config: Config) {
-    const { typeName, hint, options, manifest } = this._config
+    const { typeName, options, hint, manifest } = this._config
     this._typeName = typeName
-    this._hint = hint
     this._options = options
+    this._hint = hint
     this._manifest = manifest
   }
 
@@ -56,12 +60,12 @@ export class ZType<Output, Config extends ZConfig<Output>, Input>
     return this._typeName
   }
 
-  get hint() {
-    return this._hint
-  }
-
   get options() {
     return simplify(readonlyDeep(this._options))
+  }
+
+  get hint() {
+    return this._hint
   }
 
   get manifest() {
@@ -80,6 +84,10 @@ export class ZType<Output, Config extends ZConfig<Output>, Input>
 
   nullish() {
     return nullishType(this)
+  }
+
+  promise() {
+    return promiseType(this)
   }
 
   /* -------------------------------- Options ------------------------------- */
@@ -197,19 +205,70 @@ const unknownType = (options: ZOptions = {}) =>
 
 type ZUnknown = ReturnType<typeof unknownType>
 
+/* -------------------------------- ZBoolean -------------------------------- */
+
+const booleanType = (options: ZOptions = {}) =>
+  Z<boolean>()
+    .type(ZTypeName.Boolean)
+    .options(options)
+    .hint(ZParsedType.Boolean)
+    .manifest({ type: ZParsedType.Boolean })
+    .build()
+
+type ZBoolean = ReturnType<typeof booleanType>
+
+/* ---------------------------------- ZNaN ---------------------------------- */
+
+const nanType = (options: ZOptions = {}) =>
+  Z<number>()
+    .type(ZTypeName.NaN)
+    .options(options)
+    .hint(ZParsedType.NaN)
+    .manifest({ type: ZParsedType.NaN })
+    .build()
+
+type ZNaN = ReturnType<typeof nanType>
+
+/* -------------------------------- ZPromise -------------------------------- */
+
+const promiseType = <T extends AnyZType>(awaited: T, options: ZOptions = {}) =>
+  Z<Promise<OutputOf<T>>, Promise<InputOf<T>>>()
+    .type(ZTypeName.Promise)
+    .options(options)
+    .def({ awaited })
+    .hint(`Promise<${get(awaited, 'hint')}>`)
+    .manifest({ type: ZParsedType.Promise, awaited: get(awaited, 'manifest') })
+    .extend({
+      get awaited() {
+        return awaited
+      },
+      unwrap() {
+        return awaited
+      },
+    })
+
+type ZPromise<Z extends AnyZType> = ReturnType<typeof promiseType<Z>>
+
 /* -------------------------------- ZNullable ------------------------------- */
 
-const nullableType = <Z extends AnyZType>(
-  underlying: Z,
+const nullableType = <T extends AnyZType>(
+  underlying: T,
   options: ZOptions = {}
 ) =>
-  Z<OutputOf<Z> | null, InputOf<Z> | null>()
+  Z<OutputOf<T> | null, InputOf<T> | null>()
     .type(ZTypeName.Nullable)
     .options(options)
     .def({ underlying })
     .hint.or(get(underlying, 'hint'), ZParsedType.Null)
     .manifest.merge(get(underlying, 'manifest'), { nullable: true })
-    .build()
+    .extend({
+      get underlying() {
+        return underlying
+      },
+      unwrap() {
+        return underlying
+      },
+    })
 
 type ZNullable<Z extends AnyZType> = ReturnType<typeof nullableType<Z>>
 
@@ -225,7 +284,14 @@ const optionalType = <Z extends AnyZType>(
     .def({ underlying })
     .hint.or(get(underlying, 'hint'), ZParsedType.Undefined)
     .manifest.merge(get(underlying, 'manifest'), { required: false })
-    .build()
+    .extend({
+      get underlying() {
+        return underlying
+      },
+      unwrap() {
+        return underlying
+      },
+    })
 
 type ZOptional<Z extends AnyZType> = ReturnType<typeof optionalType<Z>>
 
@@ -244,7 +310,14 @@ const nullishType = <Z extends AnyZType>(
       required: false,
       nullable: true,
     })
-    .build()
+    .extend({
+      get underlying() {
+        return underlying
+      },
+      unwrap() {
+        return underlying
+      },
+    })
 
 type ZNullish<Z extends AnyZType> = ReturnType<typeof nullishType<Z>>
 
@@ -288,13 +361,18 @@ type ZVoid = ReturnType<typeof voidType>
 
 export const z = {
   any: anyType,
+  boolean: booleanType,
+  nan: nanType,
   null: nullType,
   nullable: nullableType,
   nullish: nullishType,
   optional: optionalType,
+  promise: promiseType,
   undefined: undefinedType,
   unknown: unknownType,
   void: voidType,
+
+  type: ZTypeName,
 }
 
 export namespace z {
@@ -303,10 +381,13 @@ export namespace z {
   export type infer<Z extends AnyZType> = OutputOf<Z>
 
   export type Any = ZAny
+  export type Boolean = ZBoolean
+  export type NaN = ZNaN
   export type Null = ZNull
   export type Nullable<Z extends AnyZType = AnyZType> = ZNullable<Z>
   export type Nullish<Z extends AnyZType = AnyZType> = ZNullish<Z>
   export type Optional<Z extends AnyZType = AnyZType> = ZOptional<Z>
+  export type Promise<Z extends AnyZType = AnyZType> = ZPromise<Z>
   export type Undefined = ZUndefined
   export type Unknown = ZUnknown
   export type Void = ZVoid

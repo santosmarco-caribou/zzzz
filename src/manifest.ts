@@ -1,5 +1,4 @@
-import { ZParsedType } from './typeName'
-import { merge, type Merge } from './utils'
+import type { ZParsedType } from './types'
 
 export interface DetailedBase {
   readonly title?: string
@@ -44,11 +43,3 @@ export const getZManifestDefaults = () =>
   } as const)
 
 export type ZManifestDefaults = ReturnType<typeof getZManifestDefaults>
-
-export const initializeManifest = <Output, M extends ZManifest<Output>>(
-  manifest: M
-) =>
-  merge(getZManifestDefaults(), manifest) as Merge<
-    Merge<ZManifest<Output>, ZManifestDefaults>,
-    M
-  >

@@ -42,6 +42,8 @@ export const get = <Z extends AnyZType, P extends keyof AnyZType>(
   prop: P
 ) => z[prop]
 
+/* --------------------------------- Strings -------------------------------- */
+
 export const join = <T extends readonly string[], D extends string>(
   strings: T,
   delimiter: D
@@ -58,10 +60,9 @@ export const unionizeHints = <T extends readonly string[]>(hints: T) =>
 export const isArray = <T>(value: T): value is Extract<T, readonly unknown[]> =>
   Array.isArray(value)
 
-export const head = <T extends readonly [unknown, ...unknown[]]>(arr: T) =>
-  arr[0] as T[0]
+export const head = <T extends readonly unknown[]>(arr: T) => arr[0] as T[0]
 
-export const tail = <T extends readonly [unknown, ...unknown[]]>(arr: T) =>
+export const tail = <T extends readonly unknown[]>(arr: T) =>
   arr.slice(1) as L.Tail<T>
 
 export const concat = <
